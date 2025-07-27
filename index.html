@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Emoji Catcher X Pro</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      touch-action: manipulation;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d);
+      height: 100vh;
+      width: 100vw;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+    
+    .developer-credit {
+      position: absolute;
+      bottom: 1.5vmin;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: clamp(0.6rem, 1.8vmin, 1rem);
+      z-index: 5;
+      animation: fadeIn 2s ease-in-out;
+    }
+    
+    .menu-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 2.5vmin;
+      border-radius: 4vmin;
+      text-align: center;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 1vmin 3vmin rgba(0,0,0,0.3);
+      z-index: 100;
+    }
+    
+    #menu, #shopMenu, #difficultyMenu {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(10px, 2vmin, 20px);
+    }
+    
+    h2, h3 {
+      color: #ff5722;
+      margin-bottom: clamp(5px, 1vmin, 15px);
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+      font-size: clamp(1.5rem, 5vmin, 2.5rem);
+    }
+    
+    #gameArea {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      display: none;
+      overflow: hidden;
+      touch-action: none;
+    }
+    
+    .emoji {
+      position: absolute;
+      font-size: clamp(2rem, 8vmin, 4rem);
+      user-select: none;
+      pointer-events: none;
+      will-change: transform;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+      animation: floatDown 5s linear forwards;
+      backface-visibility: hidden;
+      perspective: 1000px;
+    }
+    
+    @keyframes floatDown {
+      from { transform: translateY(-100px); }
+      to { transform: translateY(calc(100vh + 100px)); }
+    }
+    
+    .emoji.caught {
+      animation: catchPulse 0.5s ease-out forwards;
+    }
+    
+    @keyframes catchPulse {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    
+    #basket {
+      position: absolute;
+      bottom: 20vmin;
+      width: clamp(70px, 20vmin, 120px);
+      height: clamp(35px, 10vmin, 60px);
+      border-radius: 50%;
+      text-align: center;
+      font-size: clamp(2rem, 6vmin, 3.5rem);
+      line-height: clamp(35px, 10vmin, 60px);
+      left: 50%;
+      transform: translateX(-50%);
+      transition: transform 0.1s;
+      z-index: 20;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+      will-change: transform;
+    }
+    
+    #basket.catch {
+      transform: translateX(-50%) scale(1.1);
+      animation: catchEffect 0.3s ease;
+    }
+    
+    @keyframes catchEffect {
+      0% { transform: translateX(-50%) scale(1); }
+      50% { transform: translateX(-50%) scale(1.2); }
+      100% { transform: translateX(-50%) scale(1); }
+    }
+    
+    #scoreboard {
+      position: absolute;
+      top: 1.5vmin;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.85);
+      padding: 1vmin;
+      text-align: center;
+      font-weight: bold;
+      font-size: clamp(0.7rem, 2.5vmin, 1.1rem);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      z-index: 20;
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 1vmin;
+    }
+    
+    #scoreboard > div {
+      min-width: 30%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    #gameOver {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.95);
+      padding: 3vmin;
+      border-radius: 4vmin;
+      text-align: center;
+      width: 85%;
+      max-width: 450px;
+      box-shadow: 0 1vmin 3vmin rgba(0,0,0,0.2);
+      z-index: 100;
+      display: none;
+    }
+    
+    button {
+      padding: clamp(8px, 2vmin, 15px) clamp(15px, 4vmin, 30px);
+      background: linear-gradient(to bottom, #ff5722, #e64a19);
+      border: none;
+      color: white;
+      font-size: clamp(1rem, 3vmin, 1.3rem);
+      border-radius: 50px;
+      cursor: pointer;
+      margin: clamp(3px, 0.5vmin, 8px);
+      transition: all 0.2s;
+      box-shadow: 0 clamp(2px, 0.5vmin, 6px) clamp(4px, 1vmin, 12px) rgba(0,0,0,0.1);
+      font-weight: bold;
+      width: 80%;
+      max-width: 250px;
+    }
+    
+    button:active {
+      transform: scale(0.95);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .skin-option {
+      cursor: pointer;
+      font-size: clamp(2rem, 6vmin, 3.5rem);
+      margin: clamp(5px, 1vmin, 15px);
+      display: inline-block;
+      padding: clamp(5px, 1.5vmin, 15px);
+      border-radius: clamp(8px, 2vmin, 20px);
+      transition: all 0.2s;
+      background: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 clamp(2px, 0.5vmin, 6px) clamp(4px, 1vmin, 12px) rgba(0,0,0,0.1);
+    }
+    
+    .skin-option.selected {
+      background: #fff8e1;
+      box-shadow: 0 0 0 clamp(2px, 0.5vmin, 6px) #ff5722;
+      transform: scale(1.1);
+    }
+    
+    #leaderboard {
+      margin: clamp(10px, 2vmin, 25px) 0;
+      font-size: clamp(0.9rem, 2.5vmin, 1.3rem);
+      text-align: left;
+      background: rgba(255, 248, 225, 0.7);
+      padding: clamp(8px, 1.5vmin, 15px);
+      border-radius: clamp(5px, 1.5vmin, 15px);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .leaderboard-entry {
+      padding: clamp(3px, 0.8vmin, 8px);
+      border-radius: clamp(3px, 0.8vmin, 8px);
+      margin: clamp(2px, 0.5vmin, 5px) 0;
+    }
+    
+    .leaderboard-entry.current {
+      background: #ffecb3;
+      font-weight: bold;
+      box-shadow: 0 0 clamp(3px, 0.8vmin, 8px) rgba(255, 152, 0, 0.5);
+    }
+    
+    input {
+      padding: clamp(8px, 2vmin, 15px) clamp(10px, 2.5vmin, 20px);
+      border: 2px solid #ddd;
+      border-radius: 50px;
+      font-size: clamp(1rem, 3vmin, 1.3rem);
+      width: 80%;
+      max-width: 300px;
+      text-align: center;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    #gameControls {
+      position: absolute;
+      top: clamp(5px, 1.5vmin, 15px);
+      right: clamp(5px, 1.5vmin, 15px);
+      display: flex;
+      gap: clamp(5px, 1.5vmin, 15px);
+      z-index: 30;
+    }
+    
+    #gameControls button {
+      width: clamp(30px, 8vmin, 45px);
+      height: clamp(30px, 8vmin, 45px);
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(1rem, 3vmin, 1.3rem);
+    }
+    
+    #pauseOverlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: clamp(1.5rem, 6vmin, 3rem);
+      z-index: 90;
+      display: none;
+    }
+    
+    #pauseOverlay button {
+      margin-top: clamp(10px, 2.5vmin, 25px);
+      background: linear-gradient(to bottom, #4CAF50, #2E7D32);
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    @keyframes pulse {
+      from { opacity: 1; }
+      to { opacity: 0.5; }
+    }
+    
+    .warning {
+      color: #f44336;
+      font-weight: bold;
+      animation: pulse 0.5s infinite alternate;
+    }
+    
+    /* Mobile-first styles */
+    @media (max-width: 600px) {
+      .menu-container {
+        padding: clamp(10px, 3vmin, 20px);
+      }
+      
+      #scoreboard {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      
+      #scoreboard > div {
+        min-width: 45%;
+        font-size: clamp(0.7rem, 2.2vmin, 0.9rem);
+      }
+    }
+    
+    @media (max-width: 400px) {
+      #scoreboard > div {
+        min-width: 48%;
+        font-size: clamp(0.65rem, 2vmin, 0.8rem);
+      }
+    }
+    
+    /* Landscape orientation */
+    @media (max-height: 500px) and (orientation: landscape) {
+      #scoreboard {
+        top: clamp(3px, 1vmin, 8px);
+        flex-wrap: nowrap;
+        padding: clamp(2px, 0.5vmin, 4px);
+        font-size: clamp(0.6rem, 1.8vmin, 0.8rem);
+      }
+      
+      #scoreboard > div {
+        min-width: auto;
+        flex: 1;
+      }
+      
+      #basket {
+        bottom: clamp(40px, 15vmin, 70px);
+      }
+    }
+    
+    /* Tall screens */
+    @media (min-height: 700px) {
+      #basket {
+        bottom: clamp(80px, 15vmin, 120px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="developer-credit">Developed By Usman Amir | Enhanced by AI Assistant</div>
+  
+  <div class="menu-container">
+    <div id="menu">
+      <h2>🎮 Emoji Catcher X Pro</h2>
+      <input id="playerName" placeholder="Enter your name" maxlength="15" />
+      <button onclick="openShop()">🛍️ Shop</button>
+      <button onclick="showDifficultyMenu()">▶️ Start Game</button>
+      <p style="margin-top: clamp(8px, 2vmin, 20px); color: #666; font-size: clamp(0.7rem, 2.2vmin, 1rem);">Swipe left/right to move basket!</p>
+    </div>
+    
+    <div id="difficultyMenu" style="display:none">
+      <h3>🎯 Choose Difficulty</h3>
+      <button onclick="startGame('classic','easy')">😎 Easy</button>
+      <button onclick="startGame('classic','normal')">🎯 Normal</button>
+      <button onclick="startGame('classic','hard')">💀 Hard</button>
+      <button onclick="startGame('time','normal')">⏱️ Time Attack</button>
+      <button onclick="backToMenu()">🔙 Back</button>
+    </div>
+    
+    <div id="shopMenu" style="display:none">
+      <h3>🛒 Choose Your Basket Skin</h3>
+      <div>
+        <span class="skin-option" onclick="selectSkin('🧺', event)">🧺</span>
+        <span class="skin-option" onclick="selectSkin('🎒', event)">🎒</span>
+        <span class="skin-option" onclick="selectSkin('🛒', event)">🛒</span>
+        <span class="skin-option" onclick="selectSkin('🧤', event)">🧤</span>
+        <span class="skin-option" onclick="selectSkin('🏀', event)">🏀</span>
+        <span class="skin-option" onclick="selectSkin('🪣', event)">🪣</span>
+        <span class="skin-option" onclick="selectSkin('🛸', event)">🛸</span>
+        <span class="skin-option" onclick="selectSkin('🪂', event)">🪂</span>
+      </div>
+      <button onclick="closeShop()">✅ Done</button>
+    </div>
+  </div>
+  
+  <div id="gameArea">
+    <div id="gameControls">
+      <button id="pauseBtn" title="Pause Game">⏸️</button>
+      <button id="muteBtn" title="Toggle Sound">🔊</button>
+    </div>
+    
+    <div id="scoreboard">
+      <div>Player: <span id="player">-</span></div>
+      <div>Score: <span id="score">0</span></div>
+      <div>High: <span id="highScore">0</span></div>
+      <div>Coins: <span id="coins">0</span></div>
+      <div>Lives: <span id="lives">5</span></div>
+      <div>Time: <span id="timer">--</span></div>
+    </div>
+    
+    <div id="basket">🧺</div>
+    
+    <div id="pauseOverlay">
+      <div>Game Paused</div>
+      <button id="resumeBtn">▶️ Resume</button>
+    </div>
+    
+    <div id="gameOver">
+      💥 Game Over!<br>
+      Final Score: <span id="finalScore">0</span><br>
+      <div id="leaderboard">Loading leaderboard...</div>
+      <button id="restartBtn">🔁 Restart</button>
+    </div>
+  </div>
+  
+  <script>
+    // Game state
+    let gameInterval, spawnInterval, timerInterval;
+    let score, highScore, coins, lives, gameTime;
+    let fallSpeed, spawnRate, gameMode;
+    let isGameRunning = false;
+    let isPaused = false;
+    let isMuted = false;
+    let basketSpeed = 10;
+    let basketPosition = 50; // percentage
+    let touchDeltaX = 0;
+    let touchStartX = 0;
+    let isTouching = false;
+    
+    // DOM elements
+    const restartBtn = document.getElementById('restartBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const muteBtn = document.getElementById('muteBtn');
+    
+    // Initialize game
+    function init() {
+      resetGameVariables();
+      setupEventListeners();
+      
+      // Load saved skin from localStorage
+      const savedSkin = localStorage.getItem('emojiCatcherSkin');
+      if (savedSkin) {
+        selectSkin(savedSkin);
+      } else {
+        selectSkin('🧺');
+      }
+    }
+    
+    // Load high score from localStorage
+    function loadHighScore() {
+      return parseInt(localStorage.getItem('emojiCatcherHighScore')) || 0;
+    }
+    
+    function resetGameVariables() {
+      score = 0;
+      highScore = loadHighScore();
+      coins = 0;
+      lives = 5;
+      gameTime = 60;
+      fallSpeed = 2;
+      spawnRate = 1000;
+      gameMode = 'classic';
+      basketPosition = 50;
+      updateBasketPosition();
+    }
+    
+    // Setup event listeners
+    function setupEventListeners() {
+      // Keyboard controls
+      document.addEventListener('keydown', (e) => {
+        if (!isGameRunning || isPaused) return;
+        
+        if (e.key === 'ArrowLeft') {
+          basketPosition = Math.max(0, basketPosition - basketSpeed);
+          updateBasketPosition();
+        } else if (e.key === 'ArrowRight') {
+          basketPosition = Math.min(100, basketPosition + basketSpeed);
+          updateBasketPosition();
+        } else if (e.key === ' ' || e.key === 'p') {
+          togglePause();
+        }
+      });
+      
+      // Touch swipe controls
+      document.addEventListener('touchstart', (e) => {
+        if (!isGameRunning || isPaused) return;
+        isTouching = true;
+        touchStartX = e.touches[0].clientX;
+        touchDeltaX = 0;
+      });
+      
+      document.addEventListener('touchmove', (e) => {
+        if (!isGameRunning || isPaused || !isTouching) return;
+        e.preventDefault();
+        const touchX = e.touches[0].clientX;
+        touchDeltaX = touchX - touchStartX;
+        touchStartX = touchX;
+        
+        // Update basket position
+        basketPosition += touchDeltaX / window.innerWidth * 100;
+        basketPosition = Math.max(0, Math.min(100, basketPosition));
+        updateBasketPosition();
+      });
+      
+      document.addEventListener('touchend', () => {
+        isTouching = false;
+        touchDeltaX = 0;
+      });
+      
+      // Restart button
+      restartBtn.addEventListener('click', () => {
+        location.reload();
+      });
+      
+      // Pause/resume buttons
+      pauseBtn.addEventListener('click', togglePause);
+      resumeBtn.addEventListener('click', togglePause);
+      
+      // Mute button
+      muteBtn.addEventListener('click', toggleMute);
+    }
+    
+    function togglePause() {
+      isPaused = !isPaused;
+      const pauseOverlay = document.getElementById('pauseOverlay');
+      
+      if (isPaused) {
+        clearInterval(spawnInterval);
+        clearInterval(gameInterval);
+        if (timerInterval) clearInterval(timerInterval);
+        pauseOverlay.style.display = 'flex';
+      } else {
+        spawnInterval = setInterval(spawnEmoji, spawnRate);
+        gameInterval = setInterval(updateGame, 20);
+        if (gameMode === 'time') {
+          timerInterval = setInterval(updateTimer, 1000);
+        }
+        pauseOverlay.style.display = 'none';
+      }
+    }
+    
+    function toggleMute() {
+      isMuted = !isMuted;
+      muteBtn.textContent = isMuted ? '🔇' : '🔊';
+    }
+    
+    function showDifficultyMenu() {
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) {
+        alert("Please enter your name!");
+        return;
+      }
+      document.getElementById('menu').style.display = 'none';
+      document.getElementById('difficultyMenu').style.display = 'block';
+    }
+    
+    function backToMenu() {
+      document.getElementById('difficultyMenu').style.display = 'none';
+      document.getElementById('menu').style.display = 'block';
+    }
+    
+    function openShop() {
+      document.getElementById('menu').style.display = 'none';
+      document.getElementById('shopMenu').style.display = 'block';
+      
+      // Highlight current skin
+      const currentSkin = document.getElementById('basket').textContent;
+      document.querySelectorAll('.skin-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.textContent === currentSkin);
+      });
+    }
+    
+    function closeShop() {
+      document.getElementById('shopMenu').style.display = 'none';
+      document.getElementById('menu').style.display = 'block';
+    }
+    
+    function selectSkin(skin, event) {
+      document.getElementById('basket').textContent = skin;
+      document.querySelectorAll('.skin-option').forEach(opt => {
+        opt.classList.remove('selected');
+      });
+      if (event && event.target) {
+        event.target.classList.add('selected');
+      }
+      
+      // Save to localStorage
+      localStorage.setItem('emojiCatcherSkin', skin);
+    }
+    
+    function startGame(mode, difficulty) {
+      if (isGameRunning) return;
+      isGameRunning = true;
+      
+      const name = document.getElementById('playerName').value.trim() || 'Player';
+      document.getElementById('player').innerText = name;
+      document.querySelector('.menu-container').style.display = 'none';
+      document.getElementById('gameArea').style.display = 'block';
+      document.getElementById('gameOver').style.display = 'none';
+      
+      // Clear any existing emojis
+      document.querySelectorAll('.emoji').forEach(e => e.remove());
+      
+      resetGameVariables();
+      
+      // Set difficulty parameters
+      switch(difficulty) {
+        case 'easy':
+          lives = 7;
+          fallSpeed = 1.5;
+          spawnRate = 1200;
+          basketSpeed = 8;
+          break;
+        case 'hard':
+          lives = 3;
+          fallSpeed = 3.5;
+          spawnRate = 600;
+          basketSpeed = 16;
+          break;
+        default: // normal
+          lives = 5;
+          fallSpeed = 2;
+          spawnRate = 1000;
+          basketSpeed = 12;
+      }
+      
+      gameMode = mode;
+      if (mode === 'time') {
+        gameTime = 60;
+        document.getElementById('timer').textContent = gameTime + 's';
+        document.getElementById('timer').classList.remove('warning');
+      } else {
+        document.getElementById('timer').textContent = '∞';
+      }
+      
+      updateHUD();
+      
+      // Start game loops
+      spawnInterval = setInterval(spawnEmoji, spawnRate);
+      gameInterval = setInterval(updateGame, 20);
+      
+      if (mode === 'time') {
+        timerInterval = setInterval(updateTimer, 1000);
+      }
+    }
+    
+    function updateTimer() {
+      gameTime--;
+      const timerElement = document.getElementById('timer');
+      timerElement.textContent = gameTime + 's';
+      
+      if (gameTime <= 10) {
+        timerElement.classList.add('warning');
+      }
+      
+      if (gameTime <= 0) {
+        endGame();
+      }
+    }
+    
+    function updateHUD() {
+      document.getElementById('score').textContent = score;
+      document.getElementById('coins').textContent = coins;
+      document.getElementById('lives').textContent = lives;
+      document.getElementById('highScore').textContent = highScore;
+    }
+    
+    function spawnEmoji() {
+      const emoji = document.createElement('div');
+      emoji.classList.add('emoji');
+      emoji.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+      emoji.style.top = '-50px';
+      
+      const emojis = ['🍕','🍎','🎁','🎈','⭐','🍔','🍩','🎮','🍉','🍓','🍰','⚽','🏀','🥎','🍇','🍒','🍍','🍌','🍊','🍋'];
+      emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      
+      // Random size variation
+      const size = 2 + Math.random() * 0.8;
+      emoji.style.fontSize = size + 'rem';
+      
+      document.getElementById('gameArea').appendChild(emoji);
+    }
+    
+    function updateBasketPosition() {
+      const basket = document.getElementById('basket');
+      basket.style.left = `calc(${basketPosition}% - ${basket.offsetWidth/2}px)`;
+    }
+    
+    function updateGame() {
+      if (isPaused) return;
+      
+      // Update emojis
+      updateEmojis();
+    }
+    
+    function updateEmojis() {
+      const emojis = document.querySelectorAll('.emoji:not(.caught)');
+      const basket = document.getElementById('basket');
+      const basketRect = basket.getBoundingClientRect();
+      
+      // Calculate basket center and radius
+      const basketCenterX = basketRect.left + basketRect.width/2;
+      const basketCenterY = basketRect.top + basketRect.height/2;
+      const basketRadius = basketRect.width/2;
+      
+      emojis.forEach(emoji => {
+        const top = parseFloat(emoji.style.top) + fallSpeed;
+        emoji.style.top = top + 'px';
+        
+        const emojiRect = emoji.getBoundingClientRect();
+        
+        // Calculate emoji center and radius
+        const emojiCenterX = emojiRect.left + emojiRect.width/2;
+        const emojiCenterY = emojiRect.top + emojiRect.height/2;
+        const emojiRadius = emojiRect.width/2;
+        
+        // Calculate distance between centers
+        const distance = Math.sqrt(
+          Math.pow(emojiCenterX - basketCenterX, 2) + 
+          Math.pow(emojiCenterY - basketCenterY, 2)
+        );
+        
+        // Check for collision using distance
+        if (distance < (basketRadius + emojiRadius) * 0.8) {
+          // Catch animation
+          emoji.classList.add('caught');
+          basket.classList.add('catch');
+          setTimeout(() => basket.classList.remove('catch'), 100);
+          
+          // Remove emoji after animation
+          setTimeout(() => {
+            if (emoji.parentNode) emoji.remove();
+          }, 500);
+          
+          // Update score
+          score++;
+          coins++;
+          updateHUD();
+          
+          // Play sound
+          if (!isMuted) playCatchSound();
+        } 
+        // Check if emoji missed
+        else if (top > window.innerHeight) {
+          emoji.remove();
+          lives--;
+          updateHUD();
+          
+          if (lives <= 0) {
+            endGame();
+          }
+        }
+      });
+    }
+    
+    function playCatchSound() {
+      try {
+        // Create audio context
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.type = 'triangle';
+        oscillator.frequency.value = 523.25; // C5
+        gainNode.gain.value = 0.1;
+        
+        oscillator.start();
+        
+        // Stop after short duration
+        setTimeout(() => {
+          oscillator.stop();
+        }, 100);
+      } catch (e) {
+        console.log("Audio error:", e);
+      }
+    }
+    
+    function endGame() {
+      isGameRunning = false;
+      clearInterval(spawnInterval);
+      clearInterval(gameInterval);
+      if (timerInterval) clearInterval(timerInterval);
+      
+      document.getElementById('finalScore').textContent = score;
+      document.getElementById('gameOver').style.display = 'block';
+      showLeaderboard();
+      
+      if (score > highScore) {
+        highScore = score;
+        localStorage.setItem('emojiCatcherHighScore', highScore);
+      }
+    }
+    
+    function showLeaderboard() {
+      const board = document.getElementById('leaderboard');
+      const playerName = document.getElementById('player').textContent;
+      const playerScore = score;
+      
+      // Get existing leaderboard from localStorage
+      let leaderboard = JSON.parse(localStorage.getItem('emojiCatcherLeaderboard')) || [];
+      
+      // Add current player to leaderboard
+      leaderboard.push({ name: playerName, score: playerScore });
+      
+      // Sort by score descending
+      leaderboard.sort((a, b) => b.score - a.score);
+      
+      // Keep only top 10
+      leaderboard = leaderboard.slice(0, 10);
+      
+      // Save back to localStorage
+      localStorage.setItem('emojiCatcherLeaderboard', JSON.stringify(leaderboard));
+      
+      // Display leaderboard
+      board.innerHTML = '<h4>🏆 Top Scores:</h4>' + 
+        leaderboard.map((entry, index) => {
+          const isCurrent = entry.name === playerName && entry.score === playerScore;
+          return `<div class="leaderboard-entry ${isCurrent ? 'current' : ''}">
+            ${index + 1}. ${entry.name}: ${entry.score}
+          </div>`;
+        }).join('');
+    }
+    
+    // Initialize the game when page loads
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
